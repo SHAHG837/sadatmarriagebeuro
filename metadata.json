@@ -1,0 +1,6 @@
+{
+  "name": "شعبہ کفاءت السادات - ریکارڈ روم و رشتہ بیورو",
+  "description": "بین الاقوامی تنظیم السادات (ISO) کے زیر اہتمام سادات فیملیز کے لیے خودکار ریکارڈ روم، رشتہ میچنگ، اور ایڈمن ڈیش بورڈ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

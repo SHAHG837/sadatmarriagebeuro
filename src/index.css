@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-nastaliq: 'Noto Nastaliq Urdu', serif;
+    --font-arabic: 'Noto Sans Arabic', sans-serif;
+    --font-amiri: 'Amiri', serif;
+  }
+
+  body {
+    font-family: var(--font-arabic), system-ui, -apple-system, sans-serif;
+    background-color: #f6f8f6;
+  }
+}
+
+.font-nastaliq {
+  font-family: 'Noto Nastaliq Urdu', 'Amiri', serif;
+  line-height: 2.2;
+}
+
+.font-amiri {
+  font-family: 'Amiri', serif;
+}
+
+.font-arabic {
+  font-family: 'Noto Sans Arabic', sans-serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Running Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* 3D Floating, Orb & Glowing Animations */
+@keyframes float3d {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(1.5deg) rotateY(-1.5deg);
+  }
+}
+
+@keyframes orbFloat1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(30px, -25px) scale(1.1);
+  }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(-30px, 30px) scale(1.15);
+  }
+}
+
+@keyframes pulseGoldGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.25), 0 0 50px rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(245, 158, 11, 0.5), 0 0 85px rgba(16, 185, 129, 0.3);
+  }
+}
+
+.animate-float-3d {
+  animation: float3d 6s ease-in-out infinite;
+}
+
+.animate-orb-1 {
+  animation: orbFloat1 10s ease-in-out infinite;
+}
+
+.animate-orb-2 {
+  animation: orbFloat2 12s ease-in-out infinite;
+}
+
+.animate-gold-glow {
+  animation: pulseGoldGlow 4s ease-in-out infinite;
+}
