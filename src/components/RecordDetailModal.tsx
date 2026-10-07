@@ -18,12 +18,13 @@ import {
   AlertTriangle,
   Trash2,
   FileDown,
-  Loader2
+  Loader2,
+  FileJson
 } from 'lucide-react';
 import { SadatRecord, AdminUser, MatchResult } from '../types/record';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
 import { calculateMatches } from '../utils/matchingEngine';
-import { exportSingleRecordToPdf } from '../utils/pdfExportHelper';
+import { exportSingleRecordToPdf, exportSingleRecordToJson } from '../utils/pdfExportHelper';
 import logoImage from '../assets/images/shoba_kafaatu_sadat_logo_1791109262101.jpg';
 
 interface RecordDetailModalProps {
@@ -119,23 +120,37 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
               <span className="hidden sm:inline">{copied ? 'کاپی ہو گیا!' : 'واٹس ایپ کاپی'}</span>
             </button>
 
-            <button
-              onClick={async () => {
-                setIsExportingPdf(true);
-                await exportSingleRecordToPdf(record, !!currentAdmin);
-                setIsExportingPdf(false);
-              }}
-              disabled={isExportingPdf}
-              className="bg-amber-500 hover:bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title={`پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
-            >
-              {isExportingPdf ? (
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-950" />
-              ) : (
-                <FileDown className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{isExportingPdf ? 'ڈاؤن لوڈ جاری ہے...' : 'پی ڈی ایف فائل'}</span>
-            </button>
+            {/* Admin File Downloads (PDF & JSON) */}
+            {currentAdmin && (
+              <>
+                <button
+                  onClick={async () => {
+                    setIsExportingPdf(true);
+                    await exportSingleRecordToPdf(record, true);
+                    setIsExportingPdf(false);
+                  }}
+                  disabled={isExportingPdf}
+                  className="bg-amber-500 hover:bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title={`ایڈمن: پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
+                >
+                  {isExportingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-950" />
+                  ) : (
+                    <FileDown className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">{isExportingPdf ? 'ڈاؤن لوڈ...' : 'پی ڈی ایف فائل'}</span>
+                </button>
+
+                <button
+                  onClick={() => exportSingleRecordToJson(record)}
+                  className="bg-purple-800 hover:bg-purple-700 text-amber-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title={`ایڈمن: جے سن فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.json)`}
+                >
+                  <FileJson className="w-4 h-4" />
+                  <span className="hidden sm:inline">JSON</span>
+                </button>
+              </>
+            )}
 
             <button
               onClick={handlePrint}

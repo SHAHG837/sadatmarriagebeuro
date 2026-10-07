@@ -11,10 +11,14 @@ import {
   RotateCcw, 
   Upload, 
   Database,
-  Bookmark
+  Bookmark,
+  Monitor,
+  Tablet,
+  Smartphone
 } from 'lucide-react';
 import { AdminUser } from '../types/record';
 import { UserProfile } from '../types/supabase';
+import { DevicePreviewMode } from './DevicePreviewSwitcher';
 import logoImage from '../assets/images/shoba_kafaatu_sadat_logo_1791109262101.jpg';
 import { RunningTicker } from './RunningTicker';
 
@@ -36,6 +40,8 @@ interface HeaderProps {
   onResetData: () => void;
   onExportJson: () => void;
   onSelectTab?: (tab: 'all' | 'male' | 'female') => void;
+  previewMode?: DevicePreviewMode;
+  onChangePreviewMode?: (mode: DevicePreviewMode) => void;
   stats: {
     total: number;
     male: number;
@@ -61,6 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
   onResetData,
   onExportJson,
   onSelectTab,
+  previewMode = 'current',
+  onChangePreviewMode,
   stats
 }) => {
   return (
@@ -201,6 +209,56 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>
+
+            {/* Device Screen Preview Options in Header */}
+            {onChangePreviewMode && (
+              <div 
+                className="bg-slate-100/90 p-0.5 rounded-xl border border-slate-300 flex items-center gap-0.5 shadow-xs"
+                title="اسکرین پیش منظر: موجودہ اسکرین سائز، ٹیبلٹ یا موبائل"
+              >
+                <button
+                  type="button"
+                  onClick={() => onChangePreviewMode('current')}
+                  className={`px-2 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                    previewMode === 'current'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  }`}
+                  title="موجودہ اسکرین سائز (Current Screen Size)"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline">موجودہ اسکرین</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangePreviewMode('tablet')}
+                  className={`px-2 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                    previewMode === 'tablet'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  }`}
+                  title="ٹیبلٹ اسکرین پیش منظر (Tablet 768px)"
+                >
+                  <Tablet className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline">ٹیبلٹ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onChangePreviewMode('mobile')}
+                  className={`px-2 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                    previewMode === 'mobile'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  }`}
+                  title="موبائل اسکرین پیش منظر (Mobile 390px)"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline">موبائل</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Action buttons & Admin auth */}

@@ -4,7 +4,7 @@ import { SadatRecord } from '../types/record';
 import logoImage from '../assets/images/shoba_kafaatu_sadat_logo_1791109262101.jpg';
 
 /**
- * Builds HTML template for an individual Sadat record
+ * Builds HTML template for an individual Sadat record with pure standard sRGB / Hex CSS
  */
 function buildRecordHtml(record: SadatRecord, isAdmin: boolean, isBulk = false): string {
   const isFemale = record.gender === 'لڑکی';
@@ -18,7 +18,7 @@ function buildRecordHtml(record: SadatRecord, isAdmin: boolean, isBulk = false):
     <div style="width: 794px; min-height: 1120px; padding: 40px; background: #ffffff; color: #0f172a; font-family: 'Amiri', 'Noto Sans Arabic', Tahoma, Arial, sans-serif; direction: rtl; text-align: right; box-sizing: border-box; position: relative; ${isBulk ? 'page-break-after: always; margin-bottom: 20px;' : ''}">
       
       <!-- Top Decorative Bar -->
-      <div style="height: 6px; background: linear-gradient(to left, #064e3b, #d97706, #064e3b); border-radius: 3px; margin-bottom: 20px;"></div>
+      <div style="height: 6px; background: #064e3b; border-radius: 3px; margin-bottom: 20px;"></div>
 
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 18px; margin-bottom: 22px;">
@@ -173,7 +173,7 @@ function buildBulkCoverHtml(title: string, count: number, typeName: string, seri
       
       <div>
         <!-- Top Bar -->
-        <div style="height: 6px; background: linear-gradient(to left, #064e3b, #d97706, #064e3b); border-radius: 3px; margin-bottom: 40px;"></div>
+        <div style="height: 6px; background: #064e3b; border-radius: 3px; margin-bottom: 40px;"></div>
         
         <img src="${logoImage}" style="width: 110px; height: 110px; border-radius: 20px; border: 3px solid #d97706; margin: 0 auto 20px auto; object-fit: cover;" alt="Logo" />
         
@@ -222,6 +222,76 @@ function buildBulkCoverHtml(title: string, count: number, typeName: string, seri
 }
 
 /**
+ * Renders HTML inside an isolated hidden iframe with NO Tailwind v4 stylesheets.
+ * This completely prevents the `Attempting to parse an unsupported color function "oklab"` error!
+ */
+async function renderHtmlToCanvas(htmlContent: string): Promise<HTMLCanvasElement> {
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-10000px';
+  iframe.style.top = '0';
+  iframe.style.width = '794px';
+  iframe.style.height = '1123px';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  iframe.style.zIndex = '-9999';
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      throw new Error('Unable to create rendering sandbox document');
+    }
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="ur" dir="rtl">
+      <head>
+        <meta charset="utf-8">
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            background: #ffffff;
+            color: #0f172a;
+            font-family: 'Amiri', 'Noto Sans Arabic', Tahoma, Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+            width: 794px;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `);
+    doc.close();
+
+    // Allow browser time to layout and resolve images
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Convert iframe document body to high-DPI canvas
+    const canvas = await html2canvas(doc.body, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      windowWidth: 794
+    });
+
+    return canvas;
+  } finally {
+    if (document.body.contains(iframe)) {
+      document.body.removeChild(iframe);
+    }
+  }
+}
+
+/**
  * Exports a single Sadat Record into a high quality PDF
  * File name matches file code: e.g. FM001_Sadat_Record.pdf or M001_Sadat_Record.pdf
  */
@@ -231,29 +301,11 @@ export async function exportSingleRecordToPdf(
 ): Promise<{ success: boolean; filename?: string; error?: string }> {
   try {
     const filename = `${record.serialNumber}_Sadat_Record.pdf`;
+    const html = buildRecordHtml(record, isAdmin, false);
 
-    // Create a temporary hidden container
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '794px';
-    container.style.zIndex = '-1000';
-    container.innerHTML = buildRecordHtml(record, isAdmin, false);
-
-    document.body.appendChild(container);
-
-    // Render HTML to canvas
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
-
-    document.body.removeChild(container);
-
+    const canvas = await renderHtmlToCanvas(html);
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -331,22 +383,8 @@ export async function exportBulkRecordsToPdf(
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
     // 1. Generate Cover Page
-    const coverContainer = document.createElement('div');
-    coverContainer.style.position = 'fixed';
-    coverContainer.style.left = '-9999px';
-    coverContainer.style.top = '0';
-    coverContainer.style.width = '794px';
-    coverContainer.innerHTML = buildBulkCoverHtml(title, targetRecords.length, typeName, serialRange);
-    document.body.appendChild(coverContainer);
-
-    const coverCanvas = await html2canvas(coverContainer, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
-    document.body.removeChild(coverContainer);
-
+    const coverHtml = buildBulkCoverHtml(title, targetRecords.length, typeName, serialRange);
+    const coverCanvas = await renderHtmlToCanvas(coverHtml);
     pdf.addImage(coverCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
     // 2. Append each record page
@@ -354,21 +392,8 @@ export async function exportBulkRecordsToPdf(
       const rec = targetRecords[i];
       onProgress?.(`ریکارڈ #${rec.serialNumber} شامل ہو رہا ہے (${i + 1} از ${targetRecords.length})...`);
 
-      const recContainer = document.createElement('div');
-      recContainer.style.position = 'fixed';
-      recContainer.style.left = '-9999px';
-      recContainer.style.top = '0';
-      recContainer.style.width = '794px';
-      recContainer.innerHTML = buildRecordHtml(rec, isAdmin, true);
-      document.body.appendChild(recContainer);
-
-      const recCanvas = await html2canvas(recContainer, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      document.body.removeChild(recContainer);
+      const recHtml = buildRecordHtml(rec, isAdmin, true);
+      const recCanvas = await renderHtmlToCanvas(recHtml);
 
       pdf.addPage();
       pdf.addImage(recCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfWidth, pdfHeight);
@@ -382,4 +407,52 @@ export async function exportBulkRecordsToPdf(
     console.error('Failed to export bulk records to PDF:', err);
     return { success: false, error: err?.message || 'بلک پی ڈی ایف بنانے میں خرابی پیش آگئی' };
   }
+}
+
+/**
+ * Exports a single Sadat Record into a JSON file
+ * File name matches file code: e.g. FM001_Sadat_Record.json or M001_Sadat_Record.json
+ */
+export function exportSingleRecordToJson(record: SadatRecord): { success: boolean; filename: string } {
+  const filename = `${record.serialNumber}_Sadat_Record.json`;
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(record, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute('href', dataStr);
+  downloadAnchor.setAttribute('download', filename);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  return { success: true, filename };
+}
+
+/**
+ * Exports multiple Sadat Records into a JSON file (Bulk)
+ * - Female bulk: Sadat_Female_Records_FM_Bulk.json
+ * - Male bulk: Sadat_Male_Records_M_Bulk.json
+ * - All records: Sadat_All_Records_Master_Book.json
+ */
+export function exportBulkRecordsToJson(
+  records: SadatRecord[],
+  category: 'female' | 'male' | 'all'
+): { success: boolean; filename: string; count: number } {
+  let target = records;
+  let filename = `Sadat_All_Records_Master_Book_${new Date().toISOString().slice(0, 10)}.json`;
+
+  if (category === 'female') {
+    target = records.filter((r) => r.gender === 'لڑکی');
+    filename = `Sadat_Female_Records_FM_Bulk_${new Date().toISOString().slice(0, 10)}.json`;
+  } else if (category === 'male') {
+    target = records.filter((r) => r.gender === 'لڑکا');
+    filename = `Sadat_Male_Records_M_Bulk_${new Date().toISOString().slice(0, 10)}.json`;
+  }
+
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(target, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute('href', dataStr);
+  downloadAnchor.setAttribute('download', filename);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+
+  return { success: true, filename, count: target.length };
 }

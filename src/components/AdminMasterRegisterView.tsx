@@ -18,11 +18,17 @@ import {
   CheckCircle2,
   Users,
   Loader2,
-  FileText
+  FileText,
+  FileJson
 } from 'lucide-react';
 import { SadatRecord, AdminUser } from '../types/record';
 import { PAKISTAN_CITIES } from '../data/initialRecords';
-import { exportSingleRecordToPdf, exportBulkRecordsToPdf } from '../utils/pdfExportHelper';
+import { 
+  exportSingleRecordToPdf, 
+  exportBulkRecordsToPdf,
+  exportSingleRecordToJson,
+  exportBulkRecordsToJson
+} from '../utils/pdfExportHelper';
 
 interface AdminMasterRegisterViewProps {
   records: SadatRecord[];
@@ -98,6 +104,20 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
     } else {
       showNotice(`بلک پی ڈی ایف خرابی: ${res.error}`);
     }
+  };
+
+  const handleBulkJsonExport = (category: 'female' | 'male' | 'all') => {
+    if (records.length === 0) {
+      showNotice('کوئی ریکارڈ موجود نہیں ہے!');
+      return;
+    }
+    const res = exportBulkRecordsToJson(records, category);
+    showNotice(`بلک جے سن فائل (${res.count} ریکارڈز) کامیابی سے ڈاؤن لوڈ ہو گئی!`);
+  };
+
+  const handleDownloadSingleJson = (record: SadatRecord) => {
+    const res = exportSingleRecordToJson(record);
+    showNotice(`سیریل نمبر #${record.serialNumber} کی جے سن فائل (${res.filename}) ڈاؤن لوڈ ہو گئی!`);
   };
 
   const filteredRecords = useMemo(() => {
@@ -245,24 +265,25 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
             <div className="flex items-center gap-2">
               <FileDown className="w-5 h-5 text-amber-300" />
               <h4 className="font-bold text-sm text-amber-200 font-amiri">
-                پی ڈی ایف برآمد برائے ایڈمنز (Official PDF Export Center)
+                ایڈمن فائل ایکسپورٹ سینٹر (Official PDF & JSON Center)
               </h4>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              خواتین (FM سیریز) اور مرد حضرات (M سیریز) کی انفرادی و بلک پی ڈی ایف دستاویزات فائل کوڈز کے ساتھ ڈاؤن لوڈ کریں
+              خواتین (FM سیریز) اور مرد حضرات (M سیریز) کی انفرادی و بلک پی ڈی ایف اور جے سن (JSON) فائلز ڈاؤن لوڈ کریں
             </p>
           </div>
 
-          {/* Bulk Export Action Buttons */}
+          {/* Bulk Export Action Buttons (PDF & JSON) */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* PDF Bulk */}
             <button
               onClick={() => handleBulkPdfExport('female')}
               disabled={isExportingBulk || stats.girls === 0}
               className="bg-rose-700 hover:bg-rose-800 disabled:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
-              title="تمام خواتین کے ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (FM Series)"
+              title="خواتین کے تمام ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (FM Series PDF)"
             >
               <FileText className="w-3.5 h-3.5 text-rose-200" />
-              <span>خواتین بلک PDF (FM سیریز)</span>
+              <span>خواتین PDF (FM)</span>
               <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.girls}</span>
             </button>
 
@@ -270,10 +291,10 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
               onClick={() => handleBulkPdfExport('male')}
               disabled={isExportingBulk || stats.boys === 0}
               className="bg-blue-700 hover:bg-blue-800 disabled:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
-              title="تمام مرد حضرات کے ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (M Series)"
+              title="مرد حضرات کے تمام ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (M Series PDF)"
             >
               <FileText className="w-3.5 h-3.5 text-blue-200" />
-              <span>مردانہ بلک PDF (M سیریز)</span>
+              <span>مردانہ PDF (M)</span>
               <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.boys}</span>
             </button>
 
@@ -284,8 +305,41 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
               title="تمام سادات ریکارڈز کی مکمل ماسٹر بک پی ڈی ایف ڈاؤن لوڈ کریں"
             >
               <FileDown className="w-3.5 h-3.5" />
-              <span>مکمل ماسٹر بک PDF (یکجا)</span>
+              <span>ماسٹر بک PDF</span>
               <span className="bg-emerald-950/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.total}</span>
+            </button>
+
+            {/* JSON Bulk */}
+            <div className="h-6 w-px bg-white/20 mx-1 hidden sm:block"></div>
+
+            <button
+              onClick={() => handleBulkJsonExport('female')}
+              disabled={stats.girls === 0}
+              className="bg-purple-800 hover:bg-purple-900 disabled:bg-slate-700 text-amber-200 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="خواتین کے تمام ریکارڈز کی بلک JSON فائل ڈاؤن لوڈ کریں"
+            >
+              <FileJson className="w-3.5 h-3.5 text-purple-300" />
+              <span>خواتین JSON</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkJsonExport('male')}
+              disabled={stats.boys === 0}
+              className="bg-indigo-800 hover:bg-indigo-900 disabled:bg-slate-700 text-amber-200 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="مرد حضرات کے تمام ریکارڈز کی بلک JSON فائل ڈاؤن لوڈ کریں"
+            >
+              <FileJson className="w-3.5 h-3.5 text-indigo-300" />
+              <span>مردانہ JSON</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkJsonExport('all')}
+              disabled={stats.total === 0}
+              className="bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-700 text-amber-200 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="تمام سادات ریکارڈز کی مکمل ماسٹر JSON بیک اپ فائل ڈاؤن لوڈ کریں"
+            >
+              <FileJson className="w-3.5 h-3.5 text-emerald-300" />
+              <span>مکمل JSON</span>
             </button>
           </div>
         </div>
@@ -581,6 +635,14 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
                           ) : (
                             <FileDown className="w-3.5 h-3.5" />
                           )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadSingleJson(r)}
+                          className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-lg transition"
+                          title={`جے سن فائل ڈاؤن لوڈ کریں (#${r.serialNumber}_Sadat_Record.json)`}
+                        >
+                          <FileJson className="w-3.5 h-3.5" />
                         </button>
 
                         <button

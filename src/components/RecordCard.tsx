@@ -20,10 +20,11 @@ import {
   Bookmark,
   Send,
   FileDown,
-  Loader2
+  Loader2,
+  FileJson
 } from 'lucide-react';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
-import { exportSingleRecordToPdf } from '../utils/pdfExportHelper';
+import { exportSingleRecordToPdf, exportSingleRecordToJson } from '../utils/pdfExportHelper';
 
 interface RecordCardProps {
   record: SadatRecord;
@@ -245,28 +246,40 @@ export const RecordCard: React.FC<RecordCardProps> = ({
           </button>
         )}
 
-        {/* PDF Download Button */}
-        <button
-          onClick={async (e) => {
-            e.stopPropagation();
-            setIsExportingPdf(true);
-            await exportSingleRecordToPdf(record, !!currentAdmin);
-            setIsExportingPdf(false);
-          }}
-          disabled={isExportingPdf}
-          title={`پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
-          className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl transition flex items-center justify-center cursor-pointer shadow-2xs"
-        >
-          {isExportingPdf ? (
-            <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-          ) : (
-            <FileDown className="w-4 h-4" />
-          )}
-        </button>
-
-        {/* Admin Controls */}
+        {/* Admin Controls & File Downloads (Only for Admins) */}
         {currentAdmin && (
           <div className="flex items-center gap-1">
+            {/* Individual PDF Download for Admin */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIsExportingPdf(true);
+                await exportSingleRecordToPdf(record, true);
+                setIsExportingPdf(false);
+              }}
+              disabled={isExportingPdf}
+              title={`ایڈمن: پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
+              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl transition flex items-center justify-center cursor-pointer shadow-2xs"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Individual JSON Download for Admin */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                exportSingleRecordToJson(record);
+              }}
+              title={`ایڈمن: جے سن فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.json)`}
+              className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl transition flex items-center justify-center cursor-pointer shadow-2xs"
+            >
+              <FileJson className="w-4 h-4" />
+            </button>
+
             {onEdit && (
               <button
                 onClick={(e) => {
@@ -274,7 +287,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   onEdit(record);
                 }}
                 title="ریکارڈ ترمیم کریں"
-                className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition"
+                className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition cursor-pointer"
               >
                 <Edit3 className="w-4 h-4" />
               </button>
@@ -286,7 +299,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   onDelete(record.id);
                 }}
                 title="ریکارڈ حذف کریں"
-                className="p-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl transition"
+                className="p-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl transition cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

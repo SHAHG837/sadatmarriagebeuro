@@ -40,6 +40,8 @@ import { CompatibilityMatchView } from './components/CompatibilityMatchView';
 import { AdminMasterRegisterView } from './components/AdminMasterRegisterView';
 import { LandingAuthGate } from './components/LandingAuthGate';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { DevicePreviewLayout } from './components/DevicePreviewLayout';
+import { DevicePreviewMode } from './components/DevicePreviewSwitcher';
 import { isDummyRecord, getNextSerialForGender } from './utils/serialHelper';
 import { UserProfile, Application } from './types/supabase';
 import { 
@@ -133,6 +135,20 @@ export default function App() {
   const [proposalTargetRecord, setProposalTargetRecord] = useState<SadatRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<SadatRecord | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Device Preview Mode: 'current' | 'mobile' | 'tablet'
+  const [previewMode, setPreviewMode] = useState<DevicePreviewMode>(() => {
+    const saved = localStorage.getItem('sadat_preview_mode');
+    if (saved === 'mobile' || saved === 'tablet' || saved === 'current') {
+      return saved as DevicePreviewMode;
+    }
+    return 'current';
+  });
+
+  const handlePreviewModeChange = (mode: DevicePreviewMode) => {
+    setPreviewMode(mode);
+    localStorage.setItem('sadat_preview_mode', mode);
+  };
 
   // Supabase sync status
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
@@ -377,72 +393,77 @@ export default function App() {
   // When published or shared, show ONLY the Login / Sign Up Gate if not authenticated
   if (!currentUserProfile && !currentAdmin) {
     return (
-      <LandingAuthGate
-        onAuthSuccess={(profile) => {
-          setCurrentUserProfile(profile);
-          if (profile.role === 'admin' || profile.role === 'super_admin') {
-            setCurrentAdmin({
-              phone: profile.phone || profile.email || '03008658360',
-              name: profile.fullName,
-              role: profile.role === 'super_admin' ? 'main_admin' : 'admin'
-            });
+      <DevicePreviewLayout mode={previewMode} onChangeMode={handlePreviewModeChange}>
+        <LandingAuthGate
+          onAuthSuccess={(profile) => {
+            setCurrentUserProfile(profile);
+            if (profile.role === 'admin' || profile.role === 'super_admin') {
+              setCurrentAdmin({
+                phone: profile.phone || profile.email || '03008658360',
+                name: profile.fullName,
+                role: profile.role === 'super_admin' ? 'main_admin' : 'admin'
+              });
+              setActiveTab('all');
+            } else {
+              setActiveTab('matcher');
+            }
+            fetchUserSavedOpportunityIds(profile.id).then((ids) => setSavedRecordIds(ids));
+            showToast(`خوش آمدید! ${profile.fullName} سائن ان مکمل`);
+          }}
+          onAdminSuccess={(admin) => {
+            setCurrentAdmin(admin);
             setActiveTab('all');
-          } else {
-            setActiveTab('matcher');
-          }
-          fetchUserSavedOpportunityIds(profile.id).then((ids) => setSavedRecordIds(ids));
-          showToast(`خوش آمدید! ${profile.fullName} سائن ان مکمل`);
-        }}
-        onAdminSuccess={(admin) => {
-          setCurrentAdmin(admin);
-          setActiveTab('all');
-          showToast(`خوش آمدید! ${admin.name} بحیثیت ایڈمن لاگ ان ہیں`);
-        }}
-      />
+            showToast(`خوش آمدید! ${admin.name} بحیثیت ایڈمن لاگ ان ہیں`);
+          }}
+        />
+      </DevicePreviewLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/70 text-slate-900 pb-16 font-arabic selection:bg-amber-400 selection:text-emerald-950">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 left-6 z-50 bg-emerald-950 text-amber-200 border border-amber-400/40 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-bounce text-xs font-bold">
-          <CheckCircle className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+    <DevicePreviewLayout mode={previewMode} onChangeMode={handlePreviewModeChange}>
+      <div className="min-h-screen bg-slate-100/70 text-slate-900 pb-16 font-arabic selection:bg-amber-400 selection:text-emerald-950">
+        
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-6 left-6 z-50 bg-emerald-950 text-amber-200 border border-amber-400/40 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-bounce text-xs font-bold">
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
 
-      {/* Main Header with Admin controls */}
-      <Header
-        currentAdmin={currentAdmin}
-        userProfile={currentUserProfile}
-        onOpenLogin={() => setIsLoginOpen(true)}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        onLogout={async () => {
-          await signOutUser();
-          setCurrentAdmin(null);
-          setCurrentUserProfile(null);
-          localStorage.removeItem('sadat_admin_session');
-          showToast('اکاؤنٹ سے لاگ آؤٹ ہو گیا');
-        }}
-        onOpenNewRecord={() => {
-          setEditingRecord(null);
-          setIsFormOpen(true);
-        }}
-        onOpenWhatsAppImport={() => setIsWhatsAppImportOpen(true)}
-        onOpenTextUpload={() => setIsTextUploadOpen(true)}
-        onOpenSupabaseStatus={() => setIsSupabaseModalOpen(true)}
-        isSupabaseReady={syncStatus.tableReady}
-        onOpenSaved={() => setIsSavedDrawerOpen(true)}
-        savedCount={savedRecordIds.length}
-        onOpenApplications={() => setActiveTab('applications')}
-        applicationsCount={applications.length}
-        onResetData={handleResetData}
-        onExportJson={handleExportJson}
-        onSelectTab={handleTabClick}
-        stats={stats}
-      />
+        {/* Main Header with Admin controls & Device preview controls */}
+        <Header
+          currentAdmin={currentAdmin}
+          userProfile={currentUserProfile}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onLogout={async () => {
+            await signOutUser();
+            setCurrentAdmin(null);
+            setCurrentUserProfile(null);
+            localStorage.removeItem('sadat_admin_session');
+            showToast('اکاؤنٹ سے لاگ آؤٹ ہو گیا');
+          }}
+          onOpenNewRecord={() => {
+            setEditingRecord(null);
+            setIsFormOpen(true);
+          }}
+          onOpenWhatsAppImport={() => setIsWhatsAppImportOpen(true)}
+          onOpenTextUpload={() => setIsTextUploadOpen(true)}
+          onOpenSupabaseStatus={() => setIsSupabaseModalOpen(true)}
+          isSupabaseReady={syncStatus.tableReady}
+          onOpenSaved={() => setIsSavedDrawerOpen(true)}
+          savedCount={savedRecordIds.length}
+          onOpenApplications={() => setActiveTab('applications')}
+          applicationsCount={applications.length}
+          onResetData={handleResetData}
+          onExportJson={handleExportJson}
+          onSelectTab={handleTabClick}
+          previewMode={previewMode}
+          onChangePreviewMode={handlePreviewModeChange}
+          stats={stats}
+        />
 
       <main className="max-w-7xl mx-auto px-4 pt-4">
         
@@ -1020,5 +1041,6 @@ export default function App() {
         }}
       />
     </div>
+    </DevicePreviewLayout>
   );
 }
