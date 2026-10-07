@@ -16,10 +16,13 @@ import {
   AlertCircle,
   Database,
   CheckCircle2,
-  Users
+  Users,
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { SadatRecord, AdminUser } from '../types/record';
 import { PAKISTAN_CITIES } from '../data/initialRecords';
+import { exportSingleRecordToPdf, exportBulkRecordsToPdf } from '../utils/pdfExportHelper';
 
 interface AdminMasterRegisterViewProps {
   records: SadatRecord[];
@@ -57,6 +60,45 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
   const [statusFilter, setStatusFilter] = useState<'all' | 'فعال' | 'زیر غور' | 'طے پا گیا'>('all');
   const [cityFilter, setCityFilter] = useState<string>('all');
   const [maslakFilter, setMaslakFilter] = useState<string>('all');
+  const [isExportingBulk, setIsExportingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<string>('');
+  const [exportingRowId, setExportingRowId] = useState<string | null>(null);
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
+
+  const showNotice = (msg: string) => {
+    setToastNotice(msg);
+    setTimeout(() => setToastNotice(null), 4000);
+  };
+
+  const handleDownloadSinglePdf = async (record: SadatRecord) => {
+    setExportingRowId(record.id);
+    const res = await exportSingleRecordToPdf(record, true);
+    setExportingRowId(null);
+    if (res.success) {
+      showNotice(`سیریل نمبر #${record.serialNumber} کا پی ڈی ایف (${res.filename}) ڈاؤن لوڈ ہو گیا!`);
+    } else {
+      showNotice(`پی ڈی ایف بنانے میں خرابی: ${res.error}`);
+    }
+  };
+
+  const handleBulkPdfExport = async (category: 'female' | 'male' | 'all') => {
+    if (records.length === 0) {
+      showNotice('کوئی ریکارڈ موجود نہیں ہے!');
+      return;
+    }
+    setIsExportingBulk(true);
+    setBulkProgress('پی ڈی ایف کی تیاری شروع ہو رہی ہے...');
+    const res = await exportBulkRecordsToPdf(records, category, true, (text) => {
+      setBulkProgress(text);
+    });
+    setIsExportingBulk(false);
+    setBulkProgress('');
+    if (res.success) {
+      showNotice(`بلک پی ڈی ایف (${res.count} سادات ریکارڈز) کامیابی سے ڈاؤن لوڈ ہو گئی!`);
+    } else {
+      showNotice(`بلک پی ڈی ایف خرابی: ${res.error}`);
+    }
+  };
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
@@ -169,7 +211,7 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5 text-xs">
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
           <span className="text-slate-500 block text-[11px]">کل اندراج شدہ:</span>
           <strong className="text-lg text-slate-900 font-bold">{stats.total}</strong>
@@ -195,6 +237,81 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
           <strong className="text-lg text-purple-950 font-bold">{stats.settled}</strong>
         </div>
       </div>
+
+      {/* Admin PDF Export Control Bar */}
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-900 text-white rounded-2xl p-4 mb-5 border border-amber-400/30 shadow-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-amber-300" />
+              <h4 className="font-bold text-sm text-amber-200 font-amiri">
+                پی ڈی ایف برآمد برائے ایڈمنز (Official PDF Export Center)
+              </h4>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              خواتین (FM سیریز) اور مرد حضرات (M سیریز) کی انفرادی و بلک پی ڈی ایف دستاویزات فائل کوڈز کے ساتھ ڈاؤن لوڈ کریں
+            </p>
+          </div>
+
+          {/* Bulk Export Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => handleBulkPdfExport('female')}
+              disabled={isExportingBulk || stats.girls === 0}
+              className="bg-rose-700 hover:bg-rose-800 disabled:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="تمام خواتین کے ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (FM Series)"
+            >
+              <FileText className="w-3.5 h-3.5 text-rose-200" />
+              <span>خواتین بلک PDF (FM سیریز)</span>
+              <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.girls}</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkPdfExport('male')}
+              disabled={isExportingBulk || stats.boys === 0}
+              className="bg-blue-700 hover:bg-blue-800 disabled:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="تمام مرد حضرات کے ریکارڈز کی بلک پی ڈی ایف بک ڈاؤن لوڈ کریں (M Series)"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-200" />
+              <span>مردانہ بلک PDF (M سیریز)</span>
+              <span className="bg-white/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.boys}</span>
+            </button>
+
+            <button
+              onClick={() => handleBulkPdfExport('all')}
+              disabled={isExportingBulk || stats.total === 0}
+              className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 text-emerald-950 disabled:text-slate-400 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
+              title="تمام سادات ریکارڈز کی مکمل ماسٹر بک پی ڈی ایف ڈاؤن لوڈ کریں"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>مکمل ماسٹر بک PDF (یکجا)</span>
+              <span className="bg-emerald-950/20 text-[10px] px-1.5 py-0.2 rounded-full font-mono">{stats.total}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Bulk Generation Progress Indicator */}
+        {isExportingBulk && (
+          <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between bg-black/20 p-2.5 rounded-xl">
+            <div className="flex items-center gap-2 text-xs text-amber-200 font-bold">
+              <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+              <span>{bulkProgress || 'پی ڈی ایف بلک فائل تیار ہو رہی ہے، برائے مہربانی انتظار فرمائیں...'}</span>
+            </div>
+            <span className="text-[11px] text-slate-300">A4 فارمیٹ • سادات لوگو و اردو ڈیزائن</span>
+          </div>
+        )}
+      </div>
+
+      {/* Temporary Notice */}
+      {toastNotice && (
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>{toastNotice}</span>
+          </div>
+          <button onClick={() => setToastNotice(null)} className="text-emerald-700 font-bold">✕</button>
+        </div>
+      )}
 
       {/* Search and Filters Toolbar */}
       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
@@ -451,6 +568,19 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
                           title="ترمیم کریں"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadSinglePdf(r)}
+                          disabled={exportingRowId === r.id}
+                          className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition"
+                          title={`پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${r.serialNumber}_Sadat_Record.pdf)`}
+                        >
+                          {exportingRowId === r.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                          ) : (
+                            <FileDown className="w-3.5 h-3.5" />
+                          )}
                         </button>
 
                         <button

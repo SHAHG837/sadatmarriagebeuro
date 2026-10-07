@@ -16,11 +16,14 @@ import {
   Phone,
   Eye,
   AlertTriangle,
-  Trash2
+  Trash2,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { SadatRecord, AdminUser, MatchResult } from '../types/record';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
 import { calculateMatches } from '../utils/matchingEngine';
+import { exportSingleRecordToPdf } from '../utils/pdfExportHelper';
 import logoImage from '../assets/images/shoba_kafaatu_sadat_logo_1791109262101.jpg';
 
 interface RecordDetailModalProps {
@@ -44,6 +47,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showAdminSecret, setShowAdminSecret] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   if (!record) return null;
 
@@ -113,6 +117,24 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
             >
               {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Share2 className="w-4 h-4" />}
               <span className="hidden sm:inline">{copied ? 'کاپی ہو گیا!' : 'واٹس ایپ کاپی'}</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                setIsExportingPdf(true);
+                await exportSingleRecordToPdf(record, !!currentAdmin);
+                setIsExportingPdf(false);
+              }}
+              disabled={isExportingPdf}
+              className="bg-amber-500 hover:bg-amber-400 text-emerald-950 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title={`پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
+            >
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-950" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{isExportingPdf ? 'ڈاؤن لوڈ جاری ہے...' : 'پی ڈی ایف فائل'}</span>
             </button>
 
             <button

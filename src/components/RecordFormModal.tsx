@@ -131,7 +131,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
 
     const recordToSave: SadatRecord = {
       id: initialData?.id || `rec-${Date.now()}`,
-      serialNumber: formData.serialNumber || nextSerialNumber,
+      serialNumber: formData.serialNumber || nextSerialNumber || getNextSerialForGender((formData.gender as Gender) || 'لڑکی', existingRecords),
       gender: (formData.gender as Gender) || 'لڑکی',
       name: formData.name || (formData.gender === 'لڑکی' ? 'سیدہ' : 'سید'),
       age: Number(formData.age) || 24,

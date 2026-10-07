@@ -18,9 +18,12 @@ import {
   Calendar,
   Sparkles,
   Bookmark,
-  Send
+  Send,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
+import { exportSingleRecordToPdf } from '../utils/pdfExportHelper';
 
 interface RecordCardProps {
   record: SadatRecord;
@@ -46,6 +49,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
   onApplyProposal
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const isFemale = record.gender === 'لڑکی';
 
   // Privacy rule:
@@ -235,11 +239,30 @@ export const RecordCard: React.FC<RecordCardProps> = ({
               onApplyProposal(record);
             }}
             title="رشتہ درخواست / رابطہ فارم جمع کروائیں"
-            className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition flex items-center justify-center"
+            className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition flex items-center justify-center cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>
         )}
+
+        {/* PDF Download Button */}
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            setIsExportingPdf(true);
+            await exportSingleRecordToPdf(record, !!currentAdmin);
+            setIsExportingPdf(false);
+          }}
+          disabled={isExportingPdf}
+          title={`پی ڈی ایف فائل ڈاؤن لوڈ کریں (#${record.serialNumber}_Sadat_Record.pdf)`}
+          className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl transition flex items-center justify-center cursor-pointer shadow-2xs"
+        >
+          {isExportingPdf ? (
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+          ) : (
+            <FileDown className="w-4 h-4" />
+          )}
+        </button>
 
         {/* Admin Controls */}
         {currentAdmin && (
