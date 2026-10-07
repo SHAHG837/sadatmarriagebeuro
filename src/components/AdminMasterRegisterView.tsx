@@ -29,6 +29,7 @@ import {
   exportSingleRecordToJson,
   exportBulkRecordsToJson
 } from '../utils/pdfExportHelper';
+import { PdfExportPreviewModal, ExportScope } from './PdfExportPreviewModal';
 
 interface AdminMasterRegisterViewProps {
   records: SadatRecord[];
@@ -70,6 +71,17 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
   const [bulkProgress, setBulkProgress] = useState<string>('');
   const [exportingRowId, setExportingRowId] = useState<string | null>(null);
   const [toastNotice, setToastNotice] = useState<string | null>(null);
+
+  // PDF Document Preview Mode Modal State
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewRecord, setPreviewRecord] = useState<SadatRecord | null>(null);
+  const [previewScope, setPreviewScope] = useState<ExportScope>('all');
+
+  const handleOpenPreview = (record?: SadatRecord | null, scope: ExportScope = 'all') => {
+    setPreviewRecord(record || null);
+    setPreviewScope(scope);
+    setIsPreviewModalOpen(true);
+  };
 
   const showNotice = (msg: string) => {
     setToastNotice(msg);
@@ -273,8 +285,20 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
             </p>
           </div>
 
-          {/* Bulk Export Action Buttons (PDF & JSON) */}
+          {/* Bulk Export Action Buttons (PDF & JSON) & Live Preview Mode */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Live PDF Document Preview Mode Button */}
+            <button
+              onClick={() => handleOpenPreview(null, 'all')}
+              className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95 border border-amber-300"
+              title="پی ڈی ایف پیش منظر: موبائل، ٹیبلٹ اور ڈیسک ٹاپ سائز پر دیکھیں اور ڈاؤن لوڈ کریں"
+            >
+              <Eye className="w-4 h-4 text-emerald-950" />
+              <span>پیش منظر دستاویز (PDF Preview)</span>
+            </button>
+
+            <div className="h-6 w-px bg-white/25 mx-0.5 hidden sm:block"></div>
+
             {/* PDF Bulk */}
             <button
               onClick={() => handleBulkPdfExport('female')}
@@ -625,6 +649,14 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
                         </button>
 
                         <button
+                          onClick={() => handleOpenPreview(r, 'single')}
+                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg transition"
+                          title={`پی ڈی ایف پیش منظر (Preview PDF #${r.serialNumber})`}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
                           onClick={() => handleDownloadSinglePdf(r)}
                           disabled={exportingRowId === r.id}
                           className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition"
@@ -677,6 +709,14 @@ export const AdminMasterRegisterView: React.FC<AdminMasterRegisterViewProps> = (
           </button>
         </div>
       </div>
+      {/* PDF Document Preview & Export Manager Modal */}
+      <PdfExportPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        records={records}
+        initialRecord={previewRecord}
+        initialScope={previewScope}
+      />
     </div>
   );
 };

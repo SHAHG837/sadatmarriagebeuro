@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
 import { exportSingleRecordToPdf, exportSingleRecordToJson } from '../utils/pdfExportHelper';
+import { PdfExportPreviewModal } from './PdfExportPreviewModal';
 
 interface RecordCardProps {
   record: SadatRecord;
@@ -51,6 +52,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
   const isFemale = record.gender === 'لڑکی';
 
   // Privacy rule:
@@ -249,6 +251,18 @@ export const RecordCard: React.FC<RecordCardProps> = ({
         {/* Admin Controls & File Downloads (Only for Admins) */}
         {currentAdmin && (
           <div className="flex items-center gap-1">
+            {/* PDF Preview before download */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPreviewPdfOpen(true);
+              }}
+              title={`پی ڈی ایف پیش منظر (Preview PDF #${record.serialNumber})`}
+              className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition flex items-center justify-center cursor-pointer shadow-2xs"
+            >
+              <Eye className="w-4 h-4 text-amber-700" />
+            </button>
+
             {/* Individual PDF Download for Admin */}
             <button
               onClick={async (e) => {
@@ -307,6 +321,17 @@ export const RecordCard: React.FC<RecordCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* PDF Document Preview & Export Manager Modal */}
+      {isPreviewPdfOpen && (
+        <PdfExportPreviewModal
+          isOpen={isPreviewPdfOpen}
+          onClose={() => setIsPreviewPdfOpen(false)}
+          records={[record]}
+          initialRecord={record}
+          initialScope="single"
+        />
+      )}
     </div>
   );
 };

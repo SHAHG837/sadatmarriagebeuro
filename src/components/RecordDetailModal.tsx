@@ -25,6 +25,7 @@ import { SadatRecord, AdminUser, MatchResult } from '../types/record';
 import { formatWhatsAppRecord } from '../utils/whatsappHelper';
 import { calculateMatches } from '../utils/matchingEngine';
 import { exportSingleRecordToPdf, exportSingleRecordToJson } from '../utils/pdfExportHelper';
+import { PdfExportPreviewModal } from './PdfExportPreviewModal';
 import logoImage from '../assets/images/shoba_kafaatu_sadat_logo_1791109262101.jpg';
 
 interface RecordDetailModalProps {
@@ -49,6 +50,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [showAdminSecret, setShowAdminSecret] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isPreviewPdfOpen, setIsPreviewPdfOpen] = useState(false);
 
   if (!record) return null;
 
@@ -120,9 +122,18 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
               <span className="hidden sm:inline">{copied ? 'کاپی ہو گیا!' : 'واٹس ایپ کاپی'}</span>
             </button>
 
-            {/* Admin File Downloads (PDF & JSON) */}
+            {/* Admin File Downloads (PDF & JSON) & Preview Mode */}
             {currentAdmin && (
               <>
+                <button
+                  onClick={() => setIsPreviewPdfOpen(true)}
+                  className="bg-emerald-700 hover:bg-emerald-600 text-amber-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-amber-400/30"
+                  title="پی ڈی ایف پیش منظر: موبائل، ٹیبلٹ اور ڈیسک ٹاپ سائز پر دیکھیں"
+                >
+                  <Eye className="w-4 h-4 text-amber-300" />
+                  <span className="hidden sm:inline">پیش منظر PDF</span>
+                </button>
+
                 <button
                   onClick={async () => {
                     setIsExportingPdf(true);
@@ -507,6 +518,16 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
           </div>
         </div>
       </div>
+      {/* PDF Document Preview & Export Manager Modal */}
+      {isPreviewPdfOpen && (
+        <PdfExportPreviewModal
+          isOpen={isPreviewPdfOpen}
+          onClose={() => setIsPreviewPdfOpen(false)}
+          records={allRecords && allRecords.length > 0 ? allRecords : [record]}
+          initialRecord={record}
+          initialScope="single"
+        />
+      )}
     </div>
   );
 };
